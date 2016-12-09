@@ -33,11 +33,12 @@ This Project includes a Rotary Encoder, in order to compile the project you will
 * 10x 10Ω 1% 1W Power resistors
 * Various LED's, Resistors and Capacitors
 
+### Schematic ###
 
-Will be added soon:
+Pretty self explanatory, if needed, you can find [here](https://www.youtube.com/watch?v=8xX2SVcItOA) an explanation of the analog part of the circuit.
 
-* Electronics schematic
-* Photos of the build
+![](https://raw.githubusercontent.com/abicelis/ElectronicLoad/master/Schematic.png)
+
 
 ## TODO
 
