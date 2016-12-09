@@ -32,15 +32,9 @@ This Project includes a Rotary Encoder, in order to compile the project you will
 * [Arduino IDE](https://www.arduino.cc/en/Main/Software) - IDE
 * [Proteus 8](https://www.labcenter.com/) - For Schematics and PCB design
 
-## Contributing
-
-Please read [CONTRIBUTING.md](https://gist.github.com/PurpleBooth/b24679402957c63ec426) for details on our code of conduct, and the process for submitting pull requests to us.
-
-
 ## Authors
 
 * **Alejandro Bicelis** - *Coding* - [abicelis](https://github.com/abicelis)
-
 
 ## License
 
