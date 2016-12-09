@@ -1,4 +1,4 @@
-# ATmega328P (Arduino UNO) Electronic Load
+# ATmega328P (Arduino UNO) Electronic Load #
 
 This ATmega328P-based electronic load is capable of loading power supplies (Batteries, Wallwarts, you name it). It's modes are:
 
@@ -14,11 +14,28 @@ This ATmega328P-based electronic load is capable of loading power supplies (Batt
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.
 
+
+### Bill of materials ###
+
+* [MTP3055](http://www.bg-electronics.de/datenblaetter/Transistoren/MTP3055.pdf) - N-Channel **Logic-Level** Mosfet, for replacement parts click [here](http://www.allxref.com/search.htm?part=Mtp3055)
+* ATmega328P, 16Mhz crystal, 2x 20pF caps.
+* LM324N - You could use other compatible op-amps
+* Rotary Encoder with center push button
+* 16x2 LCD - Hitachi HD44780 compatible LCD
+* L7805 - 5v Linear regulator
+* 2x mini push button switches
+* 10x 10Ω 1% 1W Power resistors
+* Various LED's, Resistors and Capacitors
+
+
+
 Will be added soon:
 
 * Electronics schematic.
-* BOM 
 * Photos of the build.
+
+
+
 
 
 ### Prerequisites
