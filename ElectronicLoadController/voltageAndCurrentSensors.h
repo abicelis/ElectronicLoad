@@ -7,8 +7,6 @@ void updateVLoad() {
   VLoad = VLoadBuffer/BUFFER_SIZE;    //Recalculate VLoad avg
 }
 
-
-
 int getILoadSample() { 
   return (((double)analogRead(ILoadPin)/1024)*(5*1000));      //ILoad in mA
 }
@@ -26,9 +24,7 @@ void printVLoadAndILoad() {
   lcd.print(VLoad, 2);
 
   lcd.setCursor(10, 1);
-  for(int i = 0; i < 4-getLenghtOfInt(ILoad) ; i++) {
-    lcd.print(" ");
-  }
+  lcdPrintIntWhitespace(ILoad, 4);
   lcd.print(ILoad); 
 }
 

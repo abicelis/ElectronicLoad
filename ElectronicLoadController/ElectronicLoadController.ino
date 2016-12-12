@@ -3,11 +3,12 @@
 #include <LiquidCrystal.h>
 #include <Encoder.h>
 #include "variables.h"
+#include "lcd.h"
 #include "pwm16Bit.h"
-#include "iSetFuncs.h"
-#include "miscFuncs.h"
-#include "vSensorFuncs.h"
-#include "variableCurrentTimersAndISRs.h"
+#include "iSet.h"
+#include "timer2.h"
+#include "misc.h"
+#include "voltageAndCurrentSensors.h"
 
 
 void setup() {
@@ -52,7 +53,6 @@ void setup() {
   resetLcdToDefault();
   lcd.setCursor(0, 0);
   lcd.write("C.Cur:");
-
 }
 
 
@@ -100,17 +100,17 @@ void loop() {
   }
 
    if(mode == SQUARE_CURRENT) {
-    int encoderPos = getEncoderMovement();     //encoderPos is either -1, 0 or 1
+    int encoderPos = getEncoderMovement();       //encoderPos is either -1, 0 or 1
     if(encoderPos != 0) {                        //Encoder changed
       switch(SCCurrentParam) {
       case SC_PARAM_IHI:
         if(encoderPos > 0 && ISetSCIHi < ISET_SC_IMAX)  
           ISetSCIHi += ISET_SC_I_STEP;
-        else if(encoderPos < 0 && ISetSCIHi >= ISET_SC_I_STEP)           
+        else if(encoderPos < 0 && ISetSCIHi >= ISET_SC_I_STEP && ISetSCIHi > ISetSCILo)           
           ISetSCIHi -= ISET_SC_I_STEP;   
         break;
       case SC_PARAM_ILO:
-        if(encoderPos > 0 && ISetSCILo < ISET_SC_IMAX)  
+        if(encoderPos > 0 && ISetSCILo < ISET_SC_IMAX && ISetSCILo < ISetSCIHi)  
           ISetSCILo += ISET_SC_I_STEP;
         else if(encoderPos < 0 && ISetSCILo >= ISET_SC_I_STEP)           
           ISetSCILo -= ISET_SC_I_STEP;   
@@ -167,7 +167,70 @@ void loop() {
   }
 
    if(mode == TRIANGLE_CURRENT) {
-  
+    int encoderPos = getEncoderMovement();       //encoderPos is either -1, 0 or 1
+    if(encoderPos != 0) {                        //Encoder changed
+      switch(TCCurrentParam) {
+      case TC_PARAM_IHI:
+        if(encoderPos > 0 && ISetTCIHi < ISET_TC_IMAX)  
+          ISetTCIHi += ISET_TC_I_STEP;
+        else if(encoderPos < 0 && ISetTCIHi >= ISET_SC_I_STEP && ISetTCIHi > ISetTCILo)           
+          ISetTCIHi -= ISET_TC_I_STEP;   
+        break;
+      case TC_PARAM_ILO:
+        if(encoderPos > 0 && ISetTCILo < ISET_TC_IMAX && ISetTCILo < ISetTCIHi)  
+          ISetTCILo += ISET_TC_I_STEP;
+        else if(encoderPos < 0 && ISetTCILo >= ISET_TC_I_STEP)           
+          ISetTCILo -= ISET_TC_I_STEP;   
+        break;
+      case TC_PARAM_THI:
+        if(encoderPos > 0 && ISetTCTHi < ISET_TC_TMAX)  
+          ISetTCTHi += ISET_TC_T_STEP;
+        else if(encoderPos < 0 && ISetTCTHi >= ISET_TC_T_STEP)           
+          ISetTCTHi -= ISET_TC_T_STEP;   
+        break;
+      case TC_PARAM_TLO:
+      if(encoderPos > 0 && ISetTCTLo < ISET_TC_TMAX)  
+          ISetTCTLo += ISET_TC_T_STEP;
+        else if(encoderPos < 0 && ISetTCTLo >= ISET_TC_T_STEP)           
+          ISetTCTLo -= ISET_TC_T_STEP;  
+        break;
+      }
+    }
+
+    lcd.setCursor(0, 1);
+    switch(TCCurrentParam) {
+      case TC_PARAM_IHI:
+        lcd.write("I");
+        lcd.write(byte(3));
+        lcdPrintIntWhitespace(ISetTCIHi, 4);
+        lcd.print(ISetTCIHi);
+        lcd.write("mA");
+        break;
+        
+      case TC_PARAM_ILO:
+        lcd.write("I");
+        lcd.write(byte(4));
+        lcdPrintIntWhitespace(ISetTCILo, 4);
+        lcd.print(ISetTCILo);
+        lcd.write("mA");
+        break;
+        
+      case TC_PARAM_THI:
+        lcd.write("T");
+        lcd.write(byte(3));
+        lcdPrintIntWhitespace(ISetTCTHi, 4);
+        lcd.print(ISetTCTHi);
+        lcd.write("mS");   
+        break;
+           
+       case TC_PARAM_TLO:
+        lcd.write("T");
+        lcd.write(byte(4));
+        lcdPrintIntWhitespace(ISetTCTLo, 4);
+        lcd.print(ISetTCTLo);
+        lcd.write("mS");
+        break;
+    }
 
     
   }
@@ -217,9 +280,27 @@ void loop() {
   //Handle Encoder button press (toggle parameter change)
   if(digitalRead(encBtn) == LOW)  {
       if(mode == SQUARE_CURRENT) {
-          handleSCParamSelection();
+          switch(SCCurrentParam) {
+            case SC_PARAM_IHI:
+              SCCurrentParam = SC_PARAM_ILO;  break;
+            case SC_PARAM_ILO:
+              SCCurrentParam = SC_PARAM_THI;  break;
+            case SC_PARAM_THI:
+              SCCurrentParam = SC_PARAM_TLO;  break;
+            case SC_PARAM_TLO:
+              SCCurrentParam = SC_PARAM_IHI;  break;
+          }
       } else if(mode == TRIANGLE_CURRENT) {
-      
+          switch(TCCurrentParam) {
+            case TC_PARAM_IHI:
+              TCCurrentParam = TC_PARAM_ILO;  break;
+            case TC_PARAM_ILO:
+              TCCurrentParam = TC_PARAM_THI;  break;
+            case TC_PARAM_THI:
+              TCCurrentParam = TC_PARAM_TLO;  break;
+            case TC_PARAM_TLO:
+              TCCurrentParam = TC_PARAM_IHI;  break;
+          }
       } else if(mode == SINE_CURRENT) {
       
       }
@@ -230,7 +311,7 @@ void loop() {
 
 
 //A little delay for good luck
-delay(10);
+delay(100);
 
 }
 

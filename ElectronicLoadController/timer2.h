@@ -18,7 +18,6 @@ void setupTimer2() {
   sei();//allow interrupts
 }
 
-
 void enableTimer2(){
     // enable timer compare interrupt
     TIMSK2 |= (1 << OCIE2A);
@@ -41,7 +40,6 @@ ISR(TIMER2_COMPA_vect){
   else {  //SQUARE_CURRENT, TRIANGLE_CURRENT or SINE_CURRENT
     
     if(mode == SQUARE_CURRENT) {
-  
       if(ISetTimeCounter >= ISetTimeOverflowVal) {
         if(SCisHi){
           digitalWrite(outputEnabledLed, LOW);
@@ -56,9 +54,45 @@ ISR(TIMER2_COMPA_vect){
           ISetTimeCounter = 0;
           writeISet(ISetVal);
       }
+
+      
+    } else if(mode == TRIANGLE_CURRENT) {
+      if(ISetTimeCounter >= ISetTimeOverflowVal) {  //If counter overflowed, change wave slope
+        
+        if(TCisHi){
+          digitalWrite(outputEnabledLed, LOW);
+          ISetTimeOverflowVal = ISetTCTLo;
+
+          if(ISetTCTLo == 0)     //This is here to avoid a div/0 below
+            ISetVal = ISetTCILo;
+           else 
+            ISetIStep = ((float)(ISetTCIHi - ISetTCILo)/ISetTCTLo) * MS_PER_CYCLE;      //TODO: Check case when ISetTCTLo = 0mS
+        } else { 
+          digitalWrite(outputEnabledLed, HIGH);
+          ISetTimeOverflowVal = ISetTCTHi;
+
+          if(ISetTCTHi == 0)     //This is here to avoid a div/0 below
+            ISetVal = ISetTCILo;
+           else  
+            ISetIStep = ((float)(ISetTCIHi - ISetTCILo)/ISetTCTHi) * MS_PER_CYCLE;      //TODO: Check case when ISetTCTLo = 0mS
+          
+        }
+        
+        TCisHi = !TCisHi;
+        ISetTimeCounter = 0;
+        
+      } else {
+          if(TCisHi)
+            ISetVal = ISetTCILo + (ISetIStep * ISetTimeCounter);
+           else 
+            ISetVal = ISetTCIHi - (ISetIStep * ISetTimeCounter);
+          
+      }   
+      writeISet(ISetVal);
     }
-    
-    ISetTimeCounter+=MS_PER_CYCLE;    //increment time counter
   }
+
+    
+  ISetTimeCounter+=MS_PER_CYCLE;    //increment time counter
 }
 

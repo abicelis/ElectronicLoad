@@ -1,4 +1,4 @@
-void writeISet(int val){
+void writeISet(int val){    //CC mode? val = mA, CR mode? val = ohms, CP mode? val = mW.
   if(mode == CONSTANT_CURRENT || mode == SQUARE_CURRENT || mode == SINE_CURRENT || mode == TRIANGLE_CURRENT) {
     /*DEBUG_PRINT("writeISet function called! CONSTANT_CURRENT=");
     DEBUG_PRINT(ISetOneAmp);
