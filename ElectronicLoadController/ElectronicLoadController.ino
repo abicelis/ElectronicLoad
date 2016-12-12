@@ -40,9 +40,9 @@ void setup() {
   pinMode(OUTPUT, outputEnabledLed);
   pinMode(INPUT, encBtn);
   digitalWrite(encBtn, HIGH);                   //Enable internal pullup
-  pinMode(INPUT_PULLUP, modeSelectorBtn);
+  pinMode(INPUT, modeSelectorBtn);
   digitalWrite(modeSelectorBtn, HIGH);          //Enable internal pullup
-  pinMode(INPUT_PULLUP, outputEnableBtn);
+  pinMode(INPUT, outputEnableBtn);
   digitalWrite(outputEnableBtn, HIGH);          //Enable internal pullup
 
   //ISet calibration (Finds a proper ISetOneAmp value where IL=1A)
@@ -230,7 +230,7 @@ void loop() {
 
 
 //A little delay for good luck
-delay(100);
+delay(10);
 
 }
 
