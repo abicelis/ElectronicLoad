@@ -66,7 +66,7 @@ ISR(TIMER2_COMPA_vect){
           if(ISetTCTLo == 0)     //This is here to avoid a div/0 below
             ISetVal = ISetTCILo;
            else 
-            ISetIStep = ((float)(ISetTCIHi - ISetTCILo)/ISetTCTLo) * MS_PER_CYCLE;      //TODO: Check case when ISetTCTLo = 0mS
+            ISetIStep = ((float)(ISetTCIHi - ISetTCILo)/ISetTCTLo) * MS_PER_CYCLE;
         } else { 
           digitalWrite(outputEnabledLed, HIGH);
           ISetTimeOverflowVal = ISetTCTHi;
@@ -74,7 +74,7 @@ ISR(TIMER2_COMPA_vect){
           if(ISetTCTHi == 0)     //This is here to avoid a div/0 below
             ISetVal = ISetTCILo;
            else  
-            ISetIStep = ((float)(ISetTCIHi - ISetTCILo)/ISetTCTHi) * MS_PER_CYCLE;      //TODO: Check case when ISetTCTLo = 0mS
+            ISetIStep = ((float)(ISetTCIHi - ISetTCILo)/ISetTCTHi) * MS_PER_CYCLE;
           
         }
         
@@ -87,6 +87,23 @@ ISR(TIMER2_COMPA_vect){
            else 
             ISetVal = ISetTCIHi - (ISetIStep * ISetTimeCounter);
           
+      }   
+      writeISet(ISetVal);
+    } else if(mode == SINE_CURRENT) {
+      if(ISetTimeCounter >= ISetTimeOverflowVal) {  //If counter overflowed, recalculate wave
+        ISetTimeOverflowVal = ISetSNCT;
+        ISetIStep = (360.0/ISetSNCT) * MS_PER_CYCLE;
+        SNCWaveAmplitude = ((float)ISetSNCIHi - ISetSNCILo)/2;
+        SNCWaveCenter = ISetSNCILo + SNCWaveAmplitude;
+        ISetTimeCounter = 0;
+      } else {
+        int aux = sine360[(int)(ISetIStep * ISetTimeCounter)];
+        ISetVal = SNCWaveCenter + (SNCWaveAmplitude * ((float)aux/100));
+         
+        if(aux > 0)
+          digitalWrite(outputEnabledLed, HIGH);
+        else
+          digitalWrite(outputEnabledLed, LOW);
       }   
       writeISet(ISetVal);
     }

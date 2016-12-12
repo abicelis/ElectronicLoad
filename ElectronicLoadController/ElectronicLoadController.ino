@@ -236,7 +236,58 @@ void loop() {
   }
 
    if(mode == SINE_CURRENT) {
-  
+  int encoderPos = getEncoderMovement();         //encoderPos is either -1, 0 or 1
+    if(encoderPos != 0) {                        //Encoder changed
+      switch(SNCCurrentParam) {
+      case SNC_PARAM_IHI:
+        if(encoderPos > 0 && ISetSNCIHi < ISET_SNC_IMAX)  
+          ISetSNCIHi += ISET_SNC_I_STEP;
+        else if(encoderPos < 0 && ISetSNCIHi >= ISET_SNC_I_STEP && ISetSNCIHi > ISetSNCILo)           
+          ISetSNCIHi -= ISET_SNC_I_STEP;   
+        break;
+      case SNC_PARAM_ILO:
+        if(encoderPos > 0 && ISetSNCILo < ISET_SNC_IMAX && ISetSNCILo < ISetSNCIHi)  
+          ISetSNCILo += ISET_SNC_I_STEP;
+        else if(encoderPos < 0 && ISetSNCILo >= ISET_SNC_I_STEP)           
+          ISetSNCILo -= ISET_SNC_I_STEP;   
+        break;
+      case SNC_PARAM_T:
+        if(encoderPos > 0 && ISetSNCT < ISET_SNC_TMAX)  
+          ISetSNCT += ISET_SNC_T_STEP;
+        else if(encoderPos < 0 && ISetSNCT >= ISET_SNC_T_STEP)           
+          ISetSNCT -= ISET_SNC_T_STEP;   
+        break;
+      }
+    }
+
+    lcd.setCursor(0, 1);
+    switch(SNCCurrentParam) {
+      case SNC_PARAM_IHI:
+        lcd.write("I");
+        lcd.write(byte(3));
+        lcdPrintIntWhitespace(ISetSNCIHi, 4);
+        lcd.print(ISetSNCIHi);
+        lcd.write("mA");
+        break;
+        
+      case SNC_PARAM_ILO:
+        lcd.write("I");
+        lcd.write(byte(4));
+        lcdPrintIntWhitespace(ISetSNCILo, 4);
+        lcd.print(ISetSNCILo);
+        lcd.write("mA");
+        break;
+        
+      case SNC_PARAM_T:
+        lcd.write("T:");
+        lcdPrintIntWhitespace(ISetSNCT, 4);
+        lcd.print(ISetSNCT);
+        lcd.write("mS");   
+        break;
+
+    }
+
+    
 
     
   }
@@ -302,7 +353,14 @@ void loop() {
               TCCurrentParam = TC_PARAM_IHI;  break;
           }
       } else if(mode == SINE_CURRENT) {
-      
+          switch(SNCCurrentParam) {
+            case SNC_PARAM_IHI:
+              SNCCurrentParam = SNC_PARAM_ILO;  break;
+            case SNC_PARAM_ILO:
+              SNCCurrentParam = SNC_PARAM_T;  break;
+            case SNC_PARAM_T:
+              SNCCurrentParam = SNC_PARAM_IHI;  break;
+          }      
       }
 
     //Prevent double triggering?
