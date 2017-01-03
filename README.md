@@ -6,8 +6,8 @@ This ATmega328P-based electronic load is capable of loading power supplies (Batt
 * Constant Resistance
 * Constant Power
 * Configurable Pulse Current
-* Configurable Triangle Current - DONE!
-* Configurable Sine Current (Coming soon!)
+* Configurable Triangle Current
+* Configurable Sine Current
 
 
 
