@@ -73,7 +73,7 @@ void loop() {
 
   
  if(mode == CONSTANT_RESISTANCE) {
-    byte encoderPos = getEncoderMovement();       //getEncoderMovement() returns either -1, 0 or 1
+    int encoderPos = getEncoderMovement();       //getEncoderMovement() returns either -1, 0 or 1
     if(encoderPos > 0 && ISetVal < ISET_CR_MAX)   //Encoder incremented
       ISetVal+=ISET_CR_STEP;
     else if (encoderPos < 0 && ISetVal >= ISET_CR_MIN)   //Encoder decremented
@@ -87,7 +87,7 @@ void loop() {
 
     
  if(mode == CONSTANT_POWER) {
-    byte encoderPos = getEncoderMovement();       //getEncoderMovement() returns either -1, 0 or 1
+    int encoderPos = getEncoderMovement();       //getEncoderMovement() returns either -1, 0 or 1
     if(encoderPos > 0 && ISetVal < ISET_CP_MAX)   //Encoder incremented
       ISetVal+=ISET_CP_STEP;
     else if (encoderPos < 0 && ISetVal >= ISET_CP_STEP)   //Encoder decremented
@@ -372,7 +372,3 @@ void loop() {
 delay(100);
 
 }
-
-
-
-
