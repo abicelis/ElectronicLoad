@@ -1,26 +1,26 @@
 /*
  * LCD
  * Wiring for the LCD:
- * LCD PIN    Arduino pin     DFROBOT shield pinout
- * RS         12              8
- * Enable     11              9
- * D4         7               7
- * D5         6               6
- * D6         5               5
- * D7         4               4
+ * LCD PIN    Arduino pin
+ * RS         12
+ * Enable     11
+ * D4         4
+ * D5         5
+ * D6         6
+ * D7         7
  * R/W pin to ground
  * VSS pin to ground
  * VCC pin to 5V
- * 10K resistor:
- * ends to +5V and ground
- * wiper to LCD VO pin (pin 3)
+ * 10K variable resistor:
+ *    ends to +5V and GND
+ *    wiper to LCD VO pin
  */
 #define LCD_RS                  12
 #define LCD_ENABLE              11
-#define LCD_D4                  7
-#define LCD_D5                  6
-#define LCD_D6                  5
-#define LCD_D7                  4
+#define LCD_D4                  4
+#define LCD_D5                  5
+#define LCD_D6                  6
+#define LCD_D7                  7
 LiquidCrystal lcd(LCD_RS, LCD_ENABLE, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 int getLenghtOfFloat(float var)
