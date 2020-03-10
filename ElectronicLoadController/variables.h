@@ -119,9 +119,6 @@ const int ILoadPin = A2;              //10bit ILoad sense pin (Measures ILoad cu
 int ILoad = 0;                        //Holds ILoad
 int ILoadBuffer = 0;                  //Buffer for a Smoother ILoad   
 
-/* Output enabled Pin */
-const byte outputEnabledLed = 9;
-
 /* Rotary Encoder */
 Encoder myEnc(2, 3);                  //Rotary encoder attached to pins 2 and 3, using interrupts INT0 and INT1.
 const byte encBtn = 8;                //Rotary encoder button pin, connected to digital pin 8
@@ -132,6 +129,3 @@ const byte outputEnableBtn = A4;
 
 byte mode = CONSTANT_CURRENT;         //Constant Current mode by default
 bool outputEnabled = false;           //Flag, sets the output as enabled (@ISetVal) or disabled (0v)
-
-
-

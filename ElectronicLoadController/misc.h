@@ -8,7 +8,6 @@ void handleModeSelection() {
   myEnc.write(0);
   outputEnabled = false;
   disableTimer2();
-  digitalWrite(outputEnabledLed, LOW);
   resetLcdToDefault();
   lcd.setCursor(0,0); 
 
@@ -83,6 +82,3 @@ int getEncoderMovement() {
     }
     return 0;
 }
-
-
-

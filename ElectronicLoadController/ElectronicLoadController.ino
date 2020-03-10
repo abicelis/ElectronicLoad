@@ -38,7 +38,6 @@ void setup() {
   delay(1500);
 
   //Button and Led pinmode setup
-  pinMode(OUTPUT, outputEnabledLed);
   pinMode(INPUT, encBtn);
   digitalWrite(encBtn, HIGH);                   //Enable internal pullup
   pinMode(INPUT, modeSelectorBtn);
@@ -315,10 +314,8 @@ void loop() {
     
     outputEnabled = !outputEnabled;
     if(outputEnabled) {
-      digitalWrite(outputEnabledLed, HIGH);
       enableTimer2();
     } else { 
-      digitalWrite(outputEnabledLed, LOW);
       disableTimer2();
       writeISet(0);
     }
