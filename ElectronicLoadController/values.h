@@ -1,12 +1,3 @@
-#ifdef DEBUG
- #define DEBUG_PRINT(x)     Serial.print (x)
- #define DEBUG_PRINTLN(x)   Serial.println (x)
-#else
- #define DEBUG_PRINT(x)
- #define DEBUG_PRINTLN(x) 
-#endif
-
-
 /* GENERAL USE CONSTANTS */
 #define CONSTANT_CURRENT        1
 #define CONSTANT_RESISTANCE     2
@@ -16,13 +7,28 @@
 #define TRIANGLE_CURRENT        6
 
 #define MS_PER_CYCLE            1      //Timer2 interrupts at 1KHz (1mS period)
-#define BUFFER_SIZE             1      //Buffer size for VSense and ISense (voltageAndCurrentSensors.h)
+#define BUFFER_SIZE             5      //Buffer size for VSense and ISense (voltageAndCurrentSensors.h)
+
+
+
+/* MISC */
+unsigned int BUTTON_DEBOUNCE_MS = 500;
+unsigned int UI_REFRESH_INTERVAL_MS = 500;
+unsigned int VLOAD_ILOAD_SAMPLE_REFRESH_INTERVAL_MS = 50;
+
+
+
+/* STATE */
+byte mode = CONSTANT_CURRENT;         //Constant Current mode by default
+bool outputEnabled = false;           //Flag, sets the output as enabled (@ISetVal) or disabled (0v)
+
+
 
 
 /*C.Current, C.Resistance and C.Power Modes */
-#define ISET_CC_MAX             2500
-#define ISET_CC_DEFAULT         250
-#define ISET_CC_STEP            25
+#define ISET_CC_MAX             3000
+#define ISET_CC_DEFAULT         500
+#define ISET_CC_STEP            100
 
 #define ISET_CR_MIN             5      //Constant Resistance min in ohms
 #define ISET_CR_MAX             500    //Constant Resistance max in ohms
@@ -32,6 +38,8 @@
 #define ISET_CP_MAX             5000    //Constant Power max in mW
 #define ISET_CP_DEFAULT         500
 #define ISET_CP_STEP            20
+
+
 
 
 /*Square wave variable current mode */
@@ -56,6 +64,9 @@ uint16_t ISetSCTHi = ISET_SC_THI_DEFAULT;
 uint16_t ISetSCTLo = ISET_SC_TLO_DEFAULT;
 byte SCCurrentParam = SC_PARAM_IHI;
 
+
+
+
 /*Triangle wave variable current mode */
 #define TC_PARAM_IHI            11
 #define TC_PARAM_ILO            21
@@ -78,6 +89,9 @@ uint16_t ISetTCTHi = ISET_TC_THI_DEFAULT;
 uint16_t ISetTCTLo = ISET_TC_TLO_DEFAULT;
 byte TCCurrentParam = TC_PARAM_IHI;
 
+
+
+
 /*Sine wave variable current mode */
 #define SNC_PARAM_IHI            15
 #define SNC_PARAM_ILO            25
@@ -99,6 +113,9 @@ int sine360[] = {0, 1, 3, 5, 6, 8, 10, 12, 13, 15, 17, 19, 20, 22, 24, 25, 27, 2
 float SNCWaveCenter;         //mA's when wave is at sine(0), sine(180), sine(360).
 float SNCWaveAmplitude;      //mA's from wave's canter to its max val.
 
+
+
+
 /* ILoad set pin */
 const int ISetPin = 10;               //PWM output pin, sets a voltage which in turn sets the current of the load
 const int ISetCalibrationPin = A0;    //Analog input pin, used to calibrate ISet
@@ -108,24 +125,39 @@ uint16_t ISetTimeCounter = 0;         //Counter, used in SINE_CURRENT, SQUARE_CU
 uint16_t ISetTimeOverflowVal;         //Overflow val for ISetTimeCounter
 float ISetIStep;
 
+
+
 /* VLoad sense pin */
-const int VLoadPin = A1;              //10bit VLoad sense pin (Caution! 17V MAX Vin on the voltage divider on this pin) 
-                                      //Vin *---[R=7,445K]---* VLoad(Arduino) *---[R=3k]---* GND
+const int VLoadPin = A1;              //10bit VLoad sense pin
+                                      //Vin *---[R1]---* VLoadPin(Arduino) *---[R2]---* GND
 float VLoad = 0;                      //Holds VLoad
 float VLoadBuffer = 0;                //Buffer for a Smoother VLoad   
+float VLoadTweak = 0.0f;              //Default value for tweaking VLoad, saved/loaded to/from EEPROM, in volts
+
 
 /* ILoad sense pin */
-const int ILoadPin = A2;              //10bit ILoad sense pin (Measures ILoad current)
+const int ILoadPin = A2;              //10bit ILoad sense pin (Measures ILoad current by measuring the voltage drop on the 1ohm resistor, so V=I*1, V=I)
 int ILoad = 0;                        //Holds ILoad
 int ILoadBuffer = 0;                  //Buffer for a Smoother ILoad   
+int ILoadTweak = 0;                //Default value for tweaking ILoad, saved/loaded to/from EEPROM, in mA
+
+
 
 /* Rotary Encoder */
 Encoder myEnc(2, 3);                  //Rotary encoder attached to pins 2 and 3, using interrupts INT0 and INT1.
 const byte encBtn = 8;                //Rotary encoder button pin, connected to digital pin 8
 
+
+
 /* Mode change and Enable Buttons */
 const byte modeSelectorBtn = A5;
 const byte outputEnableBtn = A4;
 
-byte mode = CONSTANT_CURRENT;         //Constant Current mode by default
-bool outputEnabled = false;           //Flag, sets the output as enabled (@ISetVal) or disabled (0v)
+
+#ifdef DEBUG
+ #define DEBUG_PRINT(x)     Serial.print (x)
+ #define DEBUG_PRINTLN(x)   Serial.println (x)
+#else
+ #define DEBUG_PRINT(x)
+ #define DEBUG_PRINTLN(x) 
+#endif

@@ -1,14 +1,27 @@
 #define DEBUG
 
 #include <LiquidCrystal.h>
+#include <EEPROM.h>
+
+
+// This optional setting causes Encoder to use more optimized code,
+// It must be defined before Encoder.h is included.
+#define ENCODER_OPTIMIZE_INTERRUPTS
 #include <Encoder.h>
-#include "variables.h"
+#include "values.h"
 #include "lcd.h"
 #include "pwm16Bit.h"
 #include "iSet.h"
+#include "voltageAndCurrentSensors.h"
 #include "timer2.h"
 #include "misc.h"
-#include "voltageAndCurrentSensors.h"
+#include "eeprom.h"
+
+unsigned long modeSelectorBtnLastPressMs = 0;
+unsigned long outputEnableBtnLastPressMs = 0;
+unsigned long encoderBtnLastPressMs = 0;
+unsigned long LastVLoadILoadUpdateMs = 0;
+unsigned long LastVLoadILoadSampleMs = 0;
 
 
 void setup() {
@@ -16,9 +29,9 @@ void setup() {
   #ifdef DEBUG
     Serial.begin(115200);
   #endif
-
-  //ILOAD_PIN as PWM output
-  setupPWM16();
+  
+  //Set up ILOAD_PIN as 16-bit PWM output using Timer1
+  setupILoadPWM16bit();
 
   //Configure TIMER2 so that it calls ISR(TIMER2_COMPA_vect) @ 500Hz (every 2mS)
   //ISR(TIMER2_COMPA_vect) is used to update CC waveforms
@@ -28,7 +41,7 @@ void setup() {
   lcd.begin(16, 2);
   lcd.print("ElectronicLoad");
   lcd.setCursor(0,1);
-  lcd.print("  [Version 1.07]");
+  lcd.print(" [Version 1.1.1]");
   lcd.createChar(0, ohm);
   lcd.createChar(1, vLoad);
   lcd.createChar(2, iLoad);
@@ -52,53 +65,71 @@ void setup() {
   resetLcdToDefault();
   lcd.setCursor(0, 0);
   lcd.write("C.Cur:");
+
+
+  //disable eeprom loading quickly
+  //EEPROM.put(eepromVarsWrittenAddress, 123);
+
+  //Load EEPROM values
+  loadEepromValues();
 }
 
 
 void loop() {
-
- if(mode == CONSTANT_CURRENT) {
-    int encoderPos = getEncoderMovement();       //getEncoderMovement() returns either -1, 0 or 1
-    if(encoderPos > 0 && ISetVal < ISET_CC_MAX)   //Encoder incremented
-      ISetVal+=ISET_CC_STEP;
-    else if (encoderPos < 0 && ISetVal >= ISET_CC_STEP)   //Encoder decremented
-      ISetVal-=ISET_CC_STEP;
-
+  unsigned long currentMillis = millis();
+  int encoderPos = getEncoderMovement();       //getEncoderMovement() returns either a negative value, 0 or a positive value
+  
+  if(mode == CONSTANT_CURRENT) {
+    if(encoderPos < 0 && ISetVal >= ISET_CC_STEP) {
+        ISetVal+=ISET_CC_STEP*encoderPos;
+        if(ISetVal > ISET_CC_MAX) ISetVal = 0; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+          
+    } else if(encoderPos > 0 && ISetVal < ISET_CC_MAX) {
+        ISetVal+=ISET_CC_STEP*encoderPos;
+        if(ISetVal > ISET_CC_MAX) ISetVal = ISET_CC_MAX;
+    }
+    
     lcd.setCursor(0, 1);
     lcdPrintIntWhitespace(ISetVal, 4);
     lcd.print(ISetVal); 
     lcd.write("mA");
   }
 
-  
- if(mode == CONSTANT_RESISTANCE) {
-    int encoderPos = getEncoderMovement();       //getEncoderMovement() returns either -1, 0 or 1
-    if(encoderPos > 0 && ISetVal < ISET_CR_MAX)   //Encoder incremented
-      ISetVal+=ISET_CR_STEP;
-    else if (encoderPos < 0 && ISetVal >= ISET_CR_MIN)   //Encoder decremented
-      ISetVal-=ISET_CR_STEP;
-   
+
+  else if(mode == CONSTANT_RESISTANCE) {
+    if(encoderPos < 0 && ISetVal >= ISET_CR_STEP) {
+        ISetVal+=ISET_CR_STEP*encoderPos;
+        if(ISetVal > ISET_CR_MAX) ISetVal = 0; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+          
+    } else if(encoderPos > 0 && ISetVal < ISET_CR_MAX) {
+        ISetVal+=ISET_CR_STEP*encoderPos;
+        if(ISetVal > ISET_CR_MAX) ISetVal = ISET_CR_MAX;
+    }
+
     lcd.setCursor(0, 1);
     lcdPrintIntWhitespace(ISetVal, 4);
     lcd.print(ISetVal); 
     lcd.write(byte(0)); //ohm char
   }
 
+
+  else if(mode == CONSTANT_POWER) {
+    if(encoderPos < 0 && ISetVal >= ISET_CP_STEP) {
+        ISetVal+=ISET_CP_STEP*encoderPos;
+        if(ISetVal > ISET_CP_MAX) ISetVal = 0; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+          
+    } else if(encoderPos > 0 && ISetVal < ISET_CP_MAX) {
+        ISetVal+=ISET_CP_STEP*encoderPos;
+        if(ISetVal > ISET_CP_MAX) ISetVal = ISET_CP_MAX;
+    }
     
- if(mode == CONSTANT_POWER) {
-    int encoderPos = getEncoderMovement();       //getEncoderMovement() returns either -1, 0 or 1
-    if(encoderPos > 0 && ISetVal < ISET_CP_MAX)   //Encoder incremented
-      ISetVal+=ISET_CP_STEP;
-    else if (encoderPos < 0 && ISetVal >= ISET_CP_STEP)   //Encoder decremented
-      ISetVal-=ISET_CP_STEP;
-   
     lcd.setCursor(0, 1);
     lcdPrintIntWhitespace(ISetVal, 4);
     lcd.print(ISetVal); 
     lcd.write("mW");
   }
 
-   if(mode == SQUARE_CURRENT) {
+  else if(mode == SQUARE_CURRENT) {
     int encoderPos = getEncoderMovement();       //encoderPos is either -1, 0 or 1
     if(encoderPos != 0) {                        //Encoder changed
       switch(SCCurrentParam) {
@@ -165,7 +196,8 @@ void loop() {
     }
   }
 
-   if(mode == TRIANGLE_CURRENT) {
+
+  else if(mode == TRIANGLE_CURRENT) {
     int encoderPos = getEncoderMovement();       //encoderPos is either -1, 0 or 1
     if(encoderPos != 0) {                        //Encoder changed
       switch(TCCurrentParam) {
@@ -229,12 +261,11 @@ void loop() {
         lcd.print(ISetTCTLo);
         lcd.write("mS");
         break;
-    }
-
-    
+    } 
   }
 
-   if(mode == SINE_CURRENT) {
+
+  else if(mode == SINE_CURRENT) {
   int encoderPos = getEncoderMovement();         //encoderPos is either -1, 0 or 1
     if(encoderPos != 0) {                        //Encoder changed
       switch(SNCCurrentParam) {
@@ -283,89 +314,54 @@ void loop() {
         lcd.print(ISetSNCT);
         lcd.write("mS");   
         break;
-
-    }
-
-    
-
-    
+    } 
   }
 
 
+  //Update VLoad and ILoad readings
+  //Sample every VLOAD_ILOAD_SAMPLE_REFRESH_INTERVAL_MS
+  if(currentMillis > LastVLoadILoadSampleMs + VLOAD_ILOAD_SAMPLE_REFRESH_INTERVAL_MS)  {
+    LastVLoadILoadSampleMs = currentMillis;
+    sampleVLoad(); 
+    sampleILoad();
+  }
 
-  //Always update and print VLoad and ILoad
-  updateVLoad(); 
-  updateILoad();
-  printVLoadAndILoad();
+//  //Update values on LCD every UI_REFRESH_INTERVAL_MS
+  if(currentMillis > LastVLoadILoadUpdateMs + UI_REFRESH_INTERVAL_MS)  {
+    LastVLoadILoadUpdateMs = currentMillis;
 
+//    Serial.print("VLoad=");
+//    Serial.print(VLoad);
+//    Serial.print(" ILoad=");
+//    Serial.println(ILoad);
+    printVLoadAndILoad();
+  }
+
+  
 
 
   //Handle Mode change button press
-  if(digitalRead(modeSelectorBtn) == LOW)  {
+  if(digitalRead(modeSelectorBtn) == LOW && (currentMillis > modeSelectorBtnLastPressMs + BUTTON_DEBOUNCE_MS) )  {
+    modeSelectorBtnLastPressMs = currentMillis;
     handleModeSelection();
-
-    //Prevent double triggering?
-    delay(400);
   }
 
 
   //Handle Output Enable/Disable button press
-  if(digitalRead(outputEnableBtn) == LOW)  {
-    
-    outputEnabled = !outputEnabled;
-    if(outputEnabled) {
-      enableTimer2();
-    } else { 
-      disableTimer2();
-      writeISet(0);
-    }
-    
-    //Prevent double triggering?
-    delay(400);
+  if(digitalRead(outputEnableBtn) == LOW && (currentMillis > outputEnableBtnLastPressMs + BUTTON_DEBOUNCE_MS) )  {
+    outputEnableBtnLastPressMs = currentMillis;
+    handleOutputToggle();
   }
 
 
   //Handle Encoder button press (toggle parameter change)
-  if(digitalRead(encBtn) == LOW)  {
-      if(mode == SQUARE_CURRENT) {
-          switch(SCCurrentParam) {
-            case SC_PARAM_IHI:
-              SCCurrentParam = SC_PARAM_ILO;  break;
-            case SC_PARAM_ILO:
-              SCCurrentParam = SC_PARAM_THI;  break;
-            case SC_PARAM_THI:
-              SCCurrentParam = SC_PARAM_TLO;  break;
-            case SC_PARAM_TLO:
-              SCCurrentParam = SC_PARAM_IHI;  break;
-          }
-      } else if(mode == TRIANGLE_CURRENT) {
-          switch(TCCurrentParam) {
-            case TC_PARAM_IHI:
-              TCCurrentParam = TC_PARAM_ILO;  break;
-            case TC_PARAM_ILO:
-              TCCurrentParam = TC_PARAM_THI;  break;
-            case TC_PARAM_THI:
-              TCCurrentParam = TC_PARAM_TLO;  break;
-            case TC_PARAM_TLO:
-              TCCurrentParam = TC_PARAM_IHI;  break;
-          }
-      } else if(mode == SINE_CURRENT) {
-          switch(SNCCurrentParam) {
-            case SNC_PARAM_IHI:
-              SNCCurrentParam = SNC_PARAM_ILO;  break;
-            case SNC_PARAM_ILO:
-              SNCCurrentParam = SNC_PARAM_T;  break;
-            case SNC_PARAM_T:
-              SNCCurrentParam = SNC_PARAM_IHI;  break;
-          }      
-      }
-
-    //Prevent double triggering?
-    delay(200);
+  if(digitalRead(encBtn) == LOW && (currentMillis > encoderBtnLastPressMs + BUTTON_DEBOUNCE_MS) )  {
+    encoderBtnLastPressMs = currentMillis;
+    handleEncoderButtonPress();
   } 
 
 
-//A little delay for good luck
+//A little delay for good measure
 delay(100);
 
 }

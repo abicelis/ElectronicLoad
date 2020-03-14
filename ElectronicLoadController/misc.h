@@ -1,7 +1,5 @@
 
 
-
-
 void handleModeSelection() {
   //Disable output, clear LCD, reset ISet=ISET_CC_DEFAULT, Encoder=0
   writeISet(0);
@@ -71,14 +69,62 @@ void handleModeSelection() {
 
 }
 
+void handleOutputToggle() {
+    outputEnabled = !outputEnabled;
+    if(outputEnabled) {
+      enableTimer2();
+    } else { 
+      disableTimer2();
+      writeISet(0);
+    }
+}
+
+
+void handleEncoderButtonPress() {
+  if(mode == SQUARE_CURRENT) {
+    switch(SCCurrentParam) {
+      case SC_PARAM_IHI:
+        SCCurrentParam = SC_PARAM_ILO;  break;
+      case SC_PARAM_ILO:
+        SCCurrentParam = SC_PARAM_THI;  break;
+      case SC_PARAM_THI:
+        SCCurrentParam = SC_PARAM_TLO;  break;
+      case SC_PARAM_TLO:
+        SCCurrentParam = SC_PARAM_IHI;  break;
+    }
+  } else if(mode == TRIANGLE_CURRENT) {
+    switch(TCCurrentParam) {
+      case TC_PARAM_IHI:
+        TCCurrentParam = TC_PARAM_ILO;  break;
+      case TC_PARAM_ILO:
+        TCCurrentParam = TC_PARAM_THI;  break;
+      case TC_PARAM_THI:
+        TCCurrentParam = TC_PARAM_TLO;  break;
+      case TC_PARAM_TLO:
+        TCCurrentParam = TC_PARAM_IHI;  break;
+    }
+  } else if(mode == SINE_CURRENT) {
+    switch(SNCCurrentParam) {
+      case SNC_PARAM_IHI:
+        SNCCurrentParam = SNC_PARAM_ILO;  break;
+      case SNC_PARAM_ILO:
+        SNCCurrentParam = SNC_PARAM_T;  break;
+      case SNC_PARAM_T:
+        SNCCurrentParam = SNC_PARAM_IHI;  break;
+    }      
+  }
+}
+
+
+
 int getEncoderMovement() {
     int newPos = myEnc.read();
-    if(newPos >= 4) {
+
+    int movement = 0;
+    if(newPos >= 4 || newPos <= -4) {
+      movement = newPos/4;
       myEnc.write(0);
-      return 1;
-    } else if(newPos <= -4) {
-      myEnc.write(0);
-      return -1;
     }
-    return 0;
+      
+    return movement;
 }

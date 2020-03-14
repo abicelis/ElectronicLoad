@@ -1,16 +1,39 @@
-float getVLoadSample() { 
-  return (((float)analogRead(VLoadPin)/1024)*5)*3.4816;      //VloadPin*K    K=(R1+R2)/R2=3.4816,  R1=7445ohm, R2=3000ohm.
+/* VLOAD */
+float getVLoadSample() {
+  //VloadPin*K    K=(R1+R2)/R2=4.3742,  R1=9917ohm, R2=2939ohm.
+  //Vin *---[R1]---* VLoadPin(Arduino) *---[R2]---* GND
+  int pinRead = analogRead(VLoadPin);
+  
+  float sample = (((float)pinRead/1023)*5)*4.3742;
+//  DEBUG_PRINT("VLoad pin=");
+//  DEBUG_PRINT(pinRead);
+//  DEBUG_PRINT("   voltage=");
+//  DEBUG_PRINTLN(sample);
+  
+  return sample;                                                                   
 }
-void updateVLoad() {
+
+void sampleVLoad() {
   VLoadBuffer -= VLoad;               //Remove the VLoad avg from buffer
   VLoadBuffer += getVLoadSample();    //Add a new sample
   VLoad = VLoadBuffer/BUFFER_SIZE;    //Recalculate VLoad avg
 }
 
+
+
+/* ILOAD */
 int getILoadSample() { 
-  return (((double)analogRead(ILoadPin)/1024)*(5*1000));      //ILoad in mA
+  int pinRead = analogRead(ILoadPin);
+  int sample = ((float)pinRead/1023)*5*1000;  //ILoad in mA
+
+  DEBUG_PRINT("ILoad pin=");
+  DEBUG_PRINT(pinRead);
+  DEBUG_PRINT("   mA=");
+  DEBUG_PRINTLN(sample);
+  return sample;
 }
-void updateILoad() {
+
+void sampleILoad() {
   ILoadBuffer -= ILoad;               //Remove the ILoad avg from buffer
   ILoadBuffer += getILoadSample();    //Add a new sample
   ILoad = ILoadBuffer/BUFFER_SIZE;    //Recalculate ILoad avg
@@ -18,13 +41,15 @@ void updateILoad() {
 
 
 void printVLoadAndILoad() {
+  float tweakedVLoad = VLoad + VLoadTweak;
   lcd.setCursor(10, 0);
-  if(getLenghtOfFloat(VLoad)== 4)
+  if(getLenghtOfFloat(tweakedVLoad)== 4)
     lcd.print(" ");
-  lcd.print(VLoad, 2);
+  lcd.print(tweakedVLoad, 2);
+
+  int tweakedILoad = ILoad + ILoadTweak;
 
   lcd.setCursor(10, 1);
-  lcdPrintIntWhitespace(ILoad, 4);
-  lcd.print(ILoad); 
+  lcdPrintIntWhitespace(tweakedILoad, 4);
+  lcd.print(tweakedILoad); 
 }
-
