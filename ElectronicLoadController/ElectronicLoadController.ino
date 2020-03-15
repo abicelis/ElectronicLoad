@@ -54,7 +54,7 @@ void setup() {
 
   //ISet calibration (Finds a proper ISetOneAmp value where IL=1A)
   //calibrateISet();
-  ISetOneAmp=14280;
+  ISetOneAmp=13076;
 
   resetLcdToDefault();
   lcd.setCursor(0, 0);
@@ -403,9 +403,10 @@ void loop() {
   if(digitalRead(outputEnableBtn) == LOW && (currentMillis > outputEnableBtnLastPressMs + BUTTON_DEBOUNCE_MS) )  {
     outputEnableBtnLastPressMs = currentMillis;
     
-    if(!outputEnabled && currentTemperature < overheatTempVal)
-      handleOutputToggle();
-    else {
+    if(!outputEnabled) {
+      if(currentTemperature < overheatTempVal)
+        handleOutputToggle();
+    } else {
       handleOutputToggle();
     }
   }

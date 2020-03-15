@@ -4,6 +4,7 @@ int eepromVarsWrittenCheck = 193;
 struct EepromVars {
   float VLoadTweakVar;
   int   ILoadTweakVar;
+  //TODO uint16_tisetoneamp
 };
 
 void saveEepromValues() {
