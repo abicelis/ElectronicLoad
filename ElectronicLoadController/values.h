@@ -25,7 +25,7 @@ unsigned long outputEnableBtnLastPressMs = 0;
 unsigned long encoderBtnLastPressMs = 0;
 
 
-bool booting = true;                  //Set to true, then immediately to false on loop() just as an onBoot flag.
+bool modeJustChanged = true;                  //Set to true, then immediately to false somewhere on loop(). onModeChanged flag.
 
 
 

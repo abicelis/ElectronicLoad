@@ -1,4 +1,6 @@
 void handleModeSelection() {
+  modeJustChanged = true;
+  
   //Disable output, clear LCD, reset ISet=ISET_CC_DEFAULT, Encoder=0
   writeISet(0);
   myEnc.write(0);
@@ -55,7 +57,7 @@ void handleModeSelection() {
   else if(mode == SINE_CURRENT) {
     DEBUG_PRINTLN("CONSTANT_CURRENT");
     mode = CONSTANT_CURRENT;
-    lcd.write("C.Cur:");
+    lcd.write("CC");
     ISetVal = ISET_CC_DEFAULT;
   }
 }
