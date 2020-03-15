@@ -1,28 +1,20 @@
 #define DEBUG
 
-#include <LiquidCrystal.h>
-#include <EEPROM.h>
-
-
 // This optional setting causes Encoder to use more optimized code,
 // It must be defined before Encoder.h is included.
 #define ENCODER_OPTIMIZE_INTERRUPTS
 #include <Encoder.h>
+
+#include <LiquidCrystal.h>
+#include <EEPROM.h>
 #include "values.h"
 #include "lcd.h"
 #include "pwm16Bit.h"
 #include "iSet.h"
 #include "voltageAndCurrentSensors.h"
 #include "timer2.h"
-#include "misc.h"
+#include "userActions.h"
 #include "eeprom.h"
-
-unsigned long modeSelectorBtnLastPressMs = 0;
-unsigned long outputEnableBtnLastPressMs = 0;
-unsigned long encoderBtnLastPressMs = 0;
-unsigned long LastVLoadILoadUpdateMs = 0;
-unsigned long LastVLoadILoadSampleMs = 0;
-
 
 void setup() {
 
@@ -72,6 +64,8 @@ void setup() {
 
   //Load EEPROM values
   loadEepromValues();
+              analogWrite(11, 100 );
+
 }
 
 
@@ -80,83 +74,100 @@ void loop() {
   int encoderPos = getEncoderMovement();       //getEncoderMovement() returns either a negative value, 0 or a positive value
   
   if(mode == CONSTANT_CURRENT) {
-    if(encoderPos < 0 && ISetVal >= ISET_CC_STEP) {
-        ISetVal+=ISET_CC_STEP*encoderPos;
-        if(ISetVal > ISET_CC_MAX) ISetVal = 0; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
-          
-    } else if(encoderPos > 0 && ISetVal < ISET_CC_MAX) {
-        ISetVal+=ISET_CC_STEP*encoderPos;
-        if(ISetVal > ISET_CC_MAX) ISetVal = ISET_CC_MAX;
+    if(encoderPos != 0 || booting) {                        //Encoder changed
+      booting = false;
+      
+      ISetVal += ISET_CC_STEP * encoderPos;
+      if(encoderPos < 0 && ISetVal >= ISET_CC_STEP) {
+          if(ISetVal > ISET_CC_MAX) ISetVal = 0; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+      } else if(encoderPos > 0 && ISetVal > ISET_CC_MAX) {
+          if(ISetVal > ISET_CC_MAX) ISetVal = ISET_CC_MAX;
+      }
+
+      lcd.setCursor(0, 1);
+      lcdPrintIntWhitespace(ISetVal, 4);
+      lcd.print(ISetVal); 
+      lcd.write("mA");
     }
-    
-    lcd.setCursor(0, 1);
-    lcdPrintIntWhitespace(ISetVal, 4);
-    lcd.print(ISetVal); 
-    lcd.write("mA");
   }
 
 
   else if(mode == CONSTANT_RESISTANCE) {
-    if(encoderPos < 0 && ISetVal >= ISET_CR_STEP) {
-        ISetVal+=ISET_CR_STEP*encoderPos;
-        if(ISetVal > ISET_CR_MAX) ISetVal = 0; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
-          
-    } else if(encoderPos > 0 && ISetVal < ISET_CR_MAX) {
-        ISetVal+=ISET_CR_STEP*encoderPos;
-        if(ISetVal > ISET_CR_MAX) ISetVal = ISET_CR_MAX;
+    if(encoderPos != 0) {                        //Encoder changed
+      ISetVal += ISET_CR_STEP * encoderPos;
+      if(encoderPos < 0) {
+          if(ISetVal > ISET_CR_MAX || ISetVal < ISET_CR_MIN) ISetVal = ISET_CR_MIN; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+            
+      } else if(encoderPos > 0 && ISetVal > ISET_CR_MAX) {
+          if(ISetVal > ISET_CR_MAX) ISetVal = ISET_CR_MAX;
+      }
+  
+      lcd.setCursor(0, 1);
+      lcdPrintIntWhitespace(ISetVal, 4);
+      lcd.print(ISetVal); 
+      lcd.write(byte(0)); //ohm char
     }
-
-    lcd.setCursor(0, 1);
-    lcdPrintIntWhitespace(ISetVal, 4);
-    lcd.print(ISetVal); 
-    lcd.write(byte(0)); //ohm char
   }
 
 
   else if(mode == CONSTANT_POWER) {
-    if(encoderPos < 0 && ISetVal >= ISET_CP_STEP) {
-        ISetVal+=ISET_CP_STEP*encoderPos;
-        if(ISetVal > ISET_CP_MAX) ISetVal = 0; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
-          
-    } else if(encoderPos > 0 && ISetVal < ISET_CP_MAX) {
-        ISetVal+=ISET_CP_STEP*encoderPos;
-        if(ISetVal > ISET_CP_MAX) ISetVal = ISET_CP_MAX;
+    if(encoderPos != 0) {                        //Encoder changed
+      ISetVal += ISET_CP_STEP * encoderPos;
+  
+      if(encoderPos < 0 && ISetVal >= ISET_CP_STEP) {
+          if(ISetVal > ISET_CP_MAX) ISetVal = 0; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+            
+      } else if(encoderPos > 0 && ISetVal > ISET_CP_MAX) {
+          if(ISetVal > ISET_CP_MAX) ISetVal = ISET_CP_MAX;
+      }
+      
+      lcd.setCursor(0, 1);
+      lcdPrintIntWhitespace(ISetVal, 5);
+      lcd.print(ISetVal); 
+      lcd.write("mW");
     }
-    
-    lcd.setCursor(0, 1);
-    lcdPrintIntWhitespace(ISetVal, 4);
-    lcd.print(ISetVal); 
-    lcd.write("mW");
   }
 
   else if(mode == SQUARE_CURRENT) {
-    int encoderPos = getEncoderMovement();       //encoderPos is either -1, 0 or 1
     if(encoderPos != 0) {                        //Encoder changed
       switch(SCCurrentParam) {
-      case SC_PARAM_IHI:
-        if(encoderPos > 0 && ISetSCIHi < ISET_SC_IMAX)  
-          ISetSCIHi += ISET_SC_I_STEP;
-        else if(encoderPos < 0 && ISetSCIHi >= ISET_SC_I_STEP && ISetSCIHi > ISetSCILo)           
-          ISetSCIHi -= ISET_SC_I_STEP;   
-        break;
-      case SC_PARAM_ILO:
-        if(encoderPos > 0 && ISetSCILo < ISET_SC_IMAX && ISetSCILo < ISetSCIHi)  
-          ISetSCILo += ISET_SC_I_STEP;
-        else if(encoderPos < 0 && ISetSCILo >= ISET_SC_I_STEP)           
-          ISetSCILo -= ISET_SC_I_STEP;   
-        break;
-      case SC_PARAM_THI:
-        if(encoderPos > 0 && ISetSCTHi < ISET_SC_TMAX)  
-          ISetSCTHi += ISET_SC_T_STEP;
-        else if(encoderPos < 0 && ISetSCTHi >= ISET_SC_T_STEP)           
-          ISetSCTHi -= ISET_SC_T_STEP;   
-        break;
-      case SC_PARAM_TLO:
-      if(encoderPos > 0 && ISetSCTLo < ISET_SC_TMAX)  
-          ISetSCTLo += ISET_SC_T_STEP;
-        else if(encoderPos < 0 && ISetSCTLo >= ISET_SC_T_STEP)           
-          ISetSCTLo -= ISET_SC_T_STEP;  
-        break;
+        case SC_PARAM_IHI:
+          ISetSCIHi += ISET_SC_I_STEP * encoderPos;
+  
+          if(encoderPos > 0) {
+            if(ISetSCIHi > ISET_SC_IMAX) ISetSCIHi = ISET_SC_IMAX;
+          } else if(encoderPos < 0) {          
+            if(ISetSCIHi > ISET_SC_IMAX || ISetSCIHi <= ISetSCILo) 
+              //ISetSCIHi is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+              //If lower than low, set to low+step!
+              ISetSCIHi = ISetSCILo + ISET_SC_I_STEP; 
+          }
+          break;
+          
+        case SC_PARAM_ILO:
+          ISetSCILo += ISET_SC_I_STEP * encoderPos;
+          if(encoderPos > 0) {
+            if(ISetSCILo >= ISetSCIHi) ISetSCILo = ISetSCIHi-ISET_SC_I_STEP;
+          } else if(encoderPos < 0) {          
+            if(ISetSCILo > ISET_SC_IMAX) ISetSCILo = 0; //ISetSCILo is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+          }
+          break;
+          
+        case SC_PARAM_THI:
+            ISetSCTHi += ISET_SC_T_STEP * encoderPos;
+          if(encoderPos > 0 && ISetSCTHi > ISET_SC_TMAX) 
+            ISetSCTHi = ISET_SC_TMAX;
+          else if(encoderPos < 0 && ISetSCTHi > ISET_SC_TMAX || ISetSCTHi == 0) //ISetSCTHi is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+            ISetSCTHi = ISET_SC_T_STEP;         
+          break;
+          
+        case SC_PARAM_TLO:
+          ISetSCTLo += ISET_SC_T_STEP * encoderPos;
+          if(encoderPos > 0 && ISetSCTLo > ISET_SC_TMAX) 
+            ISetSCTLo = ISET_SC_TMAX;
+          else if(encoderPos < 0 && ISetSCTLo > ISET_SC_TMAX || ISetSCTLo == 0) //ISetSCTLo is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+          ISetSCTLo = ISET_SC_T_STEP;
+          break;
       }
     }
 
@@ -198,33 +209,46 @@ void loop() {
 
 
   else if(mode == TRIANGLE_CURRENT) {
-    int encoderPos = getEncoderMovement();       //encoderPos is either -1, 0 or 1
     if(encoderPos != 0) {                        //Encoder changed
+
       switch(TCCurrentParam) {
-      case TC_PARAM_IHI:
-        if(encoderPos > 0 && ISetTCIHi < ISET_TC_IMAX)  
-          ISetTCIHi += ISET_TC_I_STEP;
-        else if(encoderPos < 0 && ISetTCIHi >= ISET_SC_I_STEP && ISetTCIHi > ISetTCILo)           
-          ISetTCIHi -= ISET_TC_I_STEP;   
-        break;
-      case TC_PARAM_ILO:
-        if(encoderPos > 0 && ISetTCILo < ISET_TC_IMAX && ISetTCILo < ISetTCIHi)  
-          ISetTCILo += ISET_TC_I_STEP;
-        else if(encoderPos < 0 && ISetTCILo >= ISET_TC_I_STEP)           
-          ISetTCILo -= ISET_TC_I_STEP;   
-        break;
-      case TC_PARAM_THI:
-        if(encoderPos > 0 && ISetTCTHi < ISET_TC_TMAX)  
-          ISetTCTHi += ISET_TC_T_STEP;
-        else if(encoderPos < 0 && ISetTCTHi >= ISET_TC_T_STEP)           
-          ISetTCTHi -= ISET_TC_T_STEP;   
-        break;
-      case TC_PARAM_TLO:
-      if(encoderPos > 0 && ISetTCTLo < ISET_TC_TMAX)  
-          ISetTCTLo += ISET_TC_T_STEP;
-        else if(encoderPos < 0 && ISetTCTLo >= ISET_TC_T_STEP)           
-          ISetTCTLo -= ISET_TC_T_STEP;  
-        break;
+        case TC_PARAM_IHI:
+          ISetTCIHi += ISET_TC_I_STEP * encoderPos;
+  
+          if(encoderPos > 0) {
+            if(ISetTCIHi > ISET_TC_IMAX) ISetTCIHi = ISET_TC_IMAX;
+          } else if(encoderPos < 0) {          
+            if(ISetTCIHi > ISET_TC_IMAX || ISetTCIHi <= ISetTCILo) 
+              //ISetTCIHi is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+              //If lower than low, set to low+step!
+              ISetTCIHi = ISetTCILo + ISET_TC_I_STEP; 
+          }
+          break;
+          
+        case TC_PARAM_ILO:
+          ISetTCILo += ISET_TC_I_STEP * encoderPos;
+          if(encoderPos > 0) {
+            if(ISetTCILo >= ISetTCIHi) ISetTCILo = ISetTCIHi-ISET_TC_I_STEP;
+          } else if(encoderPos < 0) {          
+            if(ISetTCILo > ISET_TC_IMAX) ISetTCILo = 0; //ISetTCILo is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+          }
+          break;
+          
+        case TC_PARAM_THI:
+            ISetTCTHi += ISET_TC_T_STEP * encoderPos;
+          if(encoderPos > 0 && ISetTCTHi > ISET_TC_TMAX) 
+            ISetTCTHi = ISET_TC_TMAX;
+          else if(encoderPos < 0 && ISetTCTHi > ISET_TC_TMAX || ISetTCTHi == 0) //ISetTCTHi is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+            ISetTCTHi = ISET_TC_T_STEP;         
+          break;
+          
+        case TC_PARAM_TLO:
+          ISetTCTLo += ISET_TC_T_STEP * encoderPos;
+          if(encoderPos > 0 && ISetTCTLo > ISET_TC_TMAX) 
+            ISetTCTLo = ISET_TC_TMAX;
+          else if(encoderPos < 0 && ISetTCTLo > ISET_TC_TMAX || ISetTCTLo == 0) //ISetTCTLo is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+          ISetTCTLo = ISET_TC_T_STEP;
+          break;
       }
     }
 
@@ -266,27 +290,58 @@ void loop() {
 
 
   else if(mode == SINE_CURRENT) {
-  int encoderPos = getEncoderMovement();         //encoderPos is either -1, 0 or 1
     if(encoderPos != 0) {                        //Encoder changed
       switch(SNCCurrentParam) {
-      case SNC_PARAM_IHI:
-        if(encoderPos > 0 && ISetSNCIHi < ISET_SNC_IMAX)  
-          ISetSNCIHi += ISET_SNC_I_STEP;
-        else if(encoderPos < 0 && ISetSNCIHi >= ISET_SNC_I_STEP && ISetSNCIHi > ISetSNCILo)           
-          ISetSNCIHi -= ISET_SNC_I_STEP;   
-        break;
-      case SNC_PARAM_ILO:
-        if(encoderPos > 0 && ISetSNCILo < ISET_SNC_IMAX && ISetSNCILo < ISetSNCIHi)  
-          ISetSNCILo += ISET_SNC_I_STEP;
-        else if(encoderPos < 0 && ISetSNCILo >= ISET_SNC_I_STEP)           
-          ISetSNCILo -= ISET_SNC_I_STEP;   
-        break;
+        case SNC_PARAM_IHI:
+          ISetSNCIHi += ISET_SNC_I_STEP * encoderPos;
+  
+          if(encoderPos > 0) {
+            if(ISetSNCIHi > ISET_SNC_IMAX) ISetSNCIHi = ISET_SNC_IMAX;
+          } else if(encoderPos < 0) {          
+            if(ISetSNCIHi > ISET_SNC_IMAX || ISetSNCIHi <= ISetSNCILo) 
+              //ISetSNCIHi is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+              //If lower than low, set to low+step!
+              ISetSNCIHi = ISetSNCILo + ISET_SNC_I_STEP; 
+          }
+          break;
+          
+        case SNC_PARAM_ILO:
+          ISetSNCILo += ISET_SNC_I_STEP * encoderPos;
+          if(encoderPos > 0) {
+            if(ISetSNCILo >= ISetSNCIHi) ISetSNCILo = ISetSNCIHi-ISET_SNC_I_STEP;
+          } else if(encoderPos < 0) {          
+            if(ISetSNCILo > ISET_SNC_IMAX) ISetSNCILo = 0; //ISetSNCILo is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+          }
+          break;
+          
+
+        
+//      case SNC_PARAM_IHI:
+//        if(encoderPos > 0 && ISetSNCIHi < ISET_SNC_IMAX)  
+//          ISetSNCIHi += ISET_SNC_I_STEP;
+//        else if(encoderPos < 0 && ISetSNCIHi >= ISET_SNC_I_STEP && ISetSNCIHi > ISetSNCILo)           
+//          ISetSNCIHi -= ISET_SNC_I_STEP;   
+//        break;
+//      case SNC_PARAM_ILO:
+//        if(encoderPos > 0 && ISetSNCILo < ISET_SNC_IMAX && ISetSNCILo < ISetSNCIHi)  
+//          ISetSNCILo += ISET_SNC_I_STEP;
+//        else if(encoderPos < 0 && ISetSNCILo >= ISET_SNC_I_STEP)           
+//          ISetSNCILo -= ISET_SNC_I_STEP;   
+//        break;
+        
       case SNC_PARAM_T:
-        if(encoderPos > 0 && ISetSNCT < ISET_SNC_TMAX)  
-          ISetSNCT += ISET_SNC_T_STEP;
-        else if(encoderPos < 0 && ISetSNCT >= ISET_SNC_T_STEP)           
-          ISetSNCT -= ISET_SNC_T_STEP;   
-        break;
+        ISetSNCT += ISET_SNC_T_STEP * encoderPos;
+          if(encoderPos > 0 && ISetSNCT > ISET_SNC_TMAX) 
+            ISetSNCT = ISET_SNC_TMAX;
+          else if(encoderPos < 0 && ISetSNCT > ISET_SNC_TMAX || ISetSNCT == 0) //ISetSNCT is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
+          ISetSNCT = ISET_SNC_T_STEP;
+          break;
+          
+//        if(encoderPos > 0 && ISetSNCT < ISET_SNC_TMAX)  
+//          ISetSNCT += ISET_SNC_T_STEP;
+//        else if(encoderPos < 0 && ISetSNCT >= ISET_SNC_T_STEP)           
+//          ISetSNCT -= ISET_SNC_T_STEP;   
+//        break;
       }
     }
 
@@ -318,23 +373,28 @@ void loop() {
   }
 
 
-  //Update VLoad and ILoad readings
-  //Sample every VLOAD_ILOAD_SAMPLE_REFRESH_INTERVAL_MS
-  if(currentMillis > LastVLoadILoadSampleMs + VLOAD_ILOAD_SAMPLE_REFRESH_INTERVAL_MS)  {
-    LastVLoadILoadSampleMs = currentMillis;
+  //Update VLoad, ILoad and Temp readings
+  //Sample every SHORT_INTERVAL_MS
+  if(currentMillis > LastShortIntervalMs + SHORT_INTERVAL_MS)  {
+    LastShortIntervalMs = currentMillis;
+    
     sampleVLoad(); 
     sampleILoad();
   }
 
-//  //Update values on LCD every UI_REFRESH_INTERVAL_MS
-  if(currentMillis > LastVLoadILoadUpdateMs + UI_REFRESH_INTERVAL_MS)  {
-    LastVLoadILoadUpdateMs = currentMillis;
+  //Update LCD every NORMAL_INTERVAL_MS
+  if(currentMillis > LastNormalIntervalMs + NORMAL_INTERVAL_MS)  {
+    LastNormalIntervalMs = currentMillis;
+    
+    printVLoadAndILoad(); 
+  }
+  
 
-//    Serial.print("VLoad=");
-//    Serial.print(VLoad);
-//    Serial.print(" ILoad=");
-//    Serial.println(ILoad);
-    printVLoadAndILoad();
+  //Update Temp reading and fan PWM every LONG_INTERVAL_MS
+  if(currentMillis > LastLongIntervalMs + LONG_INTERVAL_MS)  {
+    LastLongIntervalMs = currentMillis;
+    
+    sampleTempAndUpdateFan();
   }
 
   
@@ -359,7 +419,6 @@ void loop() {
     encoderBtnLastPressMs = currentMillis;
     handleEncoderButtonPress();
   } 
-
 
 //A little delay for good measure
 delay(100);

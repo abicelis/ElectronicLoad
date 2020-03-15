@@ -12,9 +12,20 @@
 
 
 /* MISC */
+unsigned int LONG_INTERVAL_MS = 2000;
+unsigned int NORMAL_INTERVAL_MS = 500;
+unsigned int SHORT_INTERVAL_MS = 50;
+unsigned long LastLongIntervalMs = 0;
+unsigned long LastNormalIntervalMs = 0;
+unsigned long LastShortIntervalMs = 0;
+
 unsigned int BUTTON_DEBOUNCE_MS = 500;
-unsigned int UI_REFRESH_INTERVAL_MS = 500;
-unsigned int VLOAD_ILOAD_SAMPLE_REFRESH_INTERVAL_MS = 50;
+unsigned long modeSelectorBtnLastPressMs = 0;
+unsigned long outputEnableBtnLastPressMs = 0;
+unsigned long encoderBtnLastPressMs = 0;
+
+
+bool booting = true;                  //Set to true, then immediately to false on loop() just as an onBoot flag.
 
 
 
@@ -27,17 +38,17 @@ bool outputEnabled = false;           //Flag, sets the output as enabled (@ISetV
 
 /*C.Current, C.Resistance and C.Power Modes */
 #define ISET_CC_MAX             3000
-#define ISET_CC_DEFAULT         500
-#define ISET_CC_STEP            100
+#define ISET_CC_DEFAULT         200
+#define ISET_CC_STEP            25
 
 #define ISET_CR_MIN             5      //Constant Resistance min in ohms
 #define ISET_CR_MAX             500    //Constant Resistance max in ohms
 #define ISET_CR_DEFAULT         50
-#define ISET_CR_STEP            5
+#define ISET_CR_STEP            1
 
-#define ISET_CP_MAX             5000    //Constant Power max in mW
+#define ISET_CP_MAX             10000    //Constant Power max in mW
 #define ISET_CP_DEFAULT         500
-#define ISET_CP_STEP            20
+#define ISET_CP_STEP            25
 
 
 
@@ -54,8 +65,8 @@ bool outputEnabled = false;           //Flag, sets the output as enabled (@ISetV
 #define ISET_SC_ILO_DEFAULT     200     //Default value for ILO in mA
 #define ISET_SC_THI_DEFAULT     1000    //Time spent @ IHI in mS
 #define ISET_SC_TLO_DEFAULT     1000    //Time spent @ ILO in mS
-#define ISET_SC_I_STEP          50
-#define ISET_SC_T_STEP          100
+#define ISET_SC_I_STEP          25
+#define ISET_SC_T_STEP          25
 
 boolean SCisHi = true;                      //Flag, true when ISet = ISetSCIHi
 uint16_t ISetSCIHi = ISET_SC_IHI_DEFAULT;
@@ -79,8 +90,8 @@ byte SCCurrentParam = SC_PARAM_IHI;
 #define ISET_TC_ILO_DEFAULT     200     //Default value for ILO in mA
 #define ISET_TC_THI_DEFAULT     1000    //Time spent @ IHI in mS
 #define ISET_TC_TLO_DEFAULT     500     //Time spent @ ILO in mS
-#define ISET_TC_I_STEP          50
-#define ISET_TC_T_STEP          100
+#define ISET_TC_I_STEP          25
+#define ISET_TC_T_STEP          25
 
 boolean TCisHi = true;                      //Flag, true when ISet = ISetTCIHi
 uint16_t ISetTCIHi = ISET_TC_IHI_DEFAULT;
@@ -102,8 +113,8 @@ byte TCCurrentParam = TC_PARAM_IHI;
 #define ISET_SNC_IHI_DEFAULT     1000    //Default value for IHI in mA
 #define ISET_SNC_ILO_DEFAULT     200     //Default value for ILO in mA
 #define ISET_SNC_T_DEFAULT       1000    //Sine wave period
-#define ISET_SNC_I_STEP          50
-#define ISET_SNC_T_STEP          100
+#define ISET_SNC_I_STEP          25
+#define ISET_SNC_T_STEP          25
 
 uint16_t ISetSNCIHi = ISET_SNC_IHI_DEFAULT;
 uint16_t ISetSNCILo = ISET_SNC_ILO_DEFAULT;
@@ -139,7 +150,7 @@ float VLoadTweak = 0.0f;              //Default value for tweaking VLoad, saved/
 const int ILoadPin = A2;              //10bit ILoad sense pin (Measures ILoad current by measuring the voltage drop on the 1ohm resistor, so V=I*1, V=I)
 int ILoad = 0;                        //Holds ILoad
 int ILoadBuffer = 0;                  //Buffer for a Smoother ILoad   
-int ILoadTweak = 0;                //Default value for tweaking ILoad, saved/loaded to/from EEPROM, in mA
+int ILoadTweak = 0;                   //Default value for tweaking ILoad, saved/loaded to/from EEPROM, in mA
 
 
 
@@ -149,9 +160,18 @@ const byte encBtn = 8;                //Rotary encoder button pin, connected to 
 
 
 
+/* Temps, Fan control and LM35 */
+const int fanPin = 9;                 //PWM output pin, sets a voltage which in turn sets the speed of the fan!
+const byte temperatureSensorPin = A3;  //Where the LM35 out is hooked. 
+int currentTemperature = 0;           //Current temperature ADC value. 150c is ~306. See below.
+const int maxTempVal = 306;            //LM35 goes from 0 to 150C, thats 10mV per degree, so. 0 to 1500mV. For a 10-bit ADC 1500v is ~306 of 1024
+
+
+
 /* Mode change and Enable Buttons */
 const byte modeSelectorBtn = A5;
 const byte outputEnableBtn = A4;
+
 
 
 #ifdef DEBUG
