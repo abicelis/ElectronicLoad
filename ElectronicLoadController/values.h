@@ -12,7 +12,7 @@
 
 
 /* MISC */
-unsigned int LONG_INTERVAL_MS = 2000;
+unsigned int LONG_INTERVAL_MS = 1000;
 unsigned int NORMAL_INTERVAL_MS = 500;
 unsigned int SHORT_INTERVAL_MS = 50;
 unsigned long LastLongIntervalMs = 0;
@@ -162,11 +162,11 @@ const byte encBtn = 8;                //Rotary encoder button pin, connected to 
 
 /* Temps, Fan control and LM35 */
 const int fanPin = 9;                 //PWM output pin, sets a voltage which in turn sets the speed of the fan!
-const byte temperatureSensorPin = A3;  //Where the LM35 out is hooked. 
+const byte temperatureSensorPin = A3; //Where the LM35 out is hooked. 
 int currentTemperature = 0;           //Current temperature ADC value. 150c is ~306. See below.
-const int maxTempVal = 306;            //LM35 goes from 0 to 150C, thats 10mV per degree, so. 0 to 1500mV. For a 10-bit ADC 1500v is ~306 of 1024
-
-
+const int maxValidTempVal = 307;      //LM35 goes from 0 to 150C, thats 10mV per degree, so. 0 to 1500mV. For a 10-bit ADC, 1500mV is ~307 of 1024
+const int overheatTempVal = 245;      //We won't let it go that hot, so max 120c. For a 10-bit ADC, 1200mV is ~245 of 1024
+const int OVERTEMP_DELAY_MS = 10000;   //Number of ms to show the OVERTEMP message
 
 /* Mode change and Enable Buttons */
 const byte modeSelectorBtn = A5;

@@ -41,18 +41,6 @@ void sampleILoad() {
 
 
 
-/* Temperature (LM35) */
-void sampleTempAndUpdateFan() {
-  currentTemperature = analogRead(temperatureSensorPin);
-  Serial.println(currentTemperature);
-
-  if(currentTemperature >= maxTempVal)
-    analogWrite16(fanPin, 65535);
-  else 
-    analogWrite16(fanPin, map(currentTemperature, 0, maxTempVal, 0, 65535));
-}
-
-
 /* LCD print things */
 
 
@@ -64,8 +52,44 @@ void printVLoadAndILoad() {
   lcd.print(tweakedVLoad, 2);
 
   int tweakedILoad = ILoad + ILoadTweak;
-
   lcd.setCursor(10, 1);
   lcdPrintIntWhitespace(tweakedILoad, 4);
   lcd.print(tweakedILoad); 
+}
+
+void printTemp() {
+  int tempInC = ((float)currentTemperature/1023)*5*100;  
+  lcd.setCursor(4, 0);
+  lcdPrintIntWhitespace(tempInC, 3);
+  lcd.print(tempInC); 
+  lcd.write(byte(7));
+}
+
+
+/* Temperature (LM35) */
+void sampleTempAndUpdateFan() {
+  currentTemperature = analogRead(temperatureSensorPin);
+
+  DEBUG_PRINTLN("Temp=");
+  DEBUG_PRINTLN(currentTemperature);
+
+  if(currentTemperature >= maxValidTempVal)
+    currentTemperature = maxValidTempVal;
+  
+  analogWrite16(fanPin, map(currentTemperature, 0, maxValidTempVal, 0, 65535));
+}
+
+void checkForOverTemp() {
+  if(currentTemperature > overheatTempVal && outputEnabled) {
+      handleOutputToggle();
+      lcd.clear();
+      printTemp();
+
+      lcd.setCursor(3,1);
+      lcd.print("!OVERHEAT!");
+      delay(OVERTEMP_DELAY_MS);
+      lcd.clear();
+
+      handleModeSelection(false);
+  }
 }

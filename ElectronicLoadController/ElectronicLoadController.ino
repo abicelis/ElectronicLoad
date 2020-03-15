@@ -11,9 +11,9 @@
 #include "lcd.h"
 #include "pwm16Bit.h"
 #include "iSet.h"
-#include "voltageAndCurrentSensors.h"
 #include "timer2.h"
 #include "userActions.h"
+#include "misc.h"
 #include "eeprom.h"
 
 void setup() {
@@ -39,6 +39,8 @@ void setup() {
   lcd.createChar(2, iLoad);
   lcd.createChar(3, hi);
   lcd.createChar(4, lo);
+  lcd.createChar(7, degC);
+
 
   delay(1500);
 
@@ -383,6 +385,8 @@ void loop() {
     LastLongIntervalMs = currentMillis;
     
     sampleTempAndUpdateFan();
+    printTemp();
+    checkForOverTemp();      
   }
 
   
@@ -391,14 +395,19 @@ void loop() {
   //Handle Mode change button press
   if(digitalRead(modeSelectorBtn) == LOW && (currentMillis > modeSelectorBtnLastPressMs + BUTTON_DEBOUNCE_MS) )  {
     modeSelectorBtnLastPressMs = currentMillis;
-    handleModeSelection();
+    handleModeSelection(true);
   }
 
 
   //Handle Output Enable/Disable button press
   if(digitalRead(outputEnableBtn) == LOW && (currentMillis > outputEnableBtnLastPressMs + BUTTON_DEBOUNCE_MS) )  {
     outputEnableBtnLastPressMs = currentMillis;
-    handleOutputToggle();
+    
+    if(!outputEnabled && currentTemperature < overheatTempVal)
+      handleOutputToggle();
+    else {
+      handleOutputToggle();
+    }
   }
 
 
