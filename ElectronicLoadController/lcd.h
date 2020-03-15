@@ -2,8 +2,8 @@
  * LCD
  * Wiring for the LCD:
  * LCD PIN    Arduino pin
- * RS         12
- * Enable     11
+ * RS         13
+ * Enable     12
  * D4         4
  * D5         5
  * D6         6
@@ -15,13 +15,14 @@
  *    ends to +5V and GND
  *    wiper to LCD VO pin
  */
-#define LCD_RS                  12
-#define LCD_ENABLE              11
+#define LCD_RS                  13
+#define LCD_ENABLE              12
 #define LCD_D4                  4
 #define LCD_D5                  5
 #define LCD_D6                  6
 #define LCD_D7                  7
 LiquidCrystal lcd(LCD_RS, LCD_ENABLE, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
+
 
 int getLenghtOfFloat(float var)
 {
@@ -31,8 +32,13 @@ int getLenghtOfFloat(float var)
     return 4;
 }
 
+
 int getLenghtOfInt(int var)
 {
+  if(var >= 100000)
+    return 6; 
+  if(var >= 10000)
+    return 5; 
   if(var >= 1000)
     return 4; 
   if(var >= 100)
@@ -173,4 +179,3 @@ byte lo[8] = {
   0b11100,
   0b00000
 };
-
