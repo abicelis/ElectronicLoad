@@ -70,8 +70,8 @@ void printTemp() {
 void sampleTempAndUpdateFan() {
   currentTemperature = analogRead(temperatureSensorPin);
 
-  DEBUG_PRINTLN("Temp=");
-  DEBUG_PRINTLN(currentTemperature);
+  //DEBUG_PRINT("Temp=");
+  //DEBUG_PRINTLN(currentTemperature);
 
   if(currentTemperature >= maxValidTempVal)
     currentTemperature = maxValidTempVal;
