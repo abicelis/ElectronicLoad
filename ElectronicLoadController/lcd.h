@@ -1,13 +1,13 @@
 /*
  * LCD
  * Wiring for the LCD:
- * LCD PIN    Arduino pin
- * RS         13
- * Enable     12
- * D4         4
- * D5         5
- * D6         6
- * D7         7
+ * LCD PIN    Arduino pin breadboard    PCB
+ * RS         13                        12
+ * Enable     12                        13
+ * D4         4                         7
+ * D5         5                         6
+ * D6         6                         5
+ * D7         7                         4
  * R/W pin to ground
  * VSS pin to ground
  * VCC pin to 5V
@@ -15,12 +15,22 @@
  *    ends to +5V and GND
  *    wiper to LCD VO pin
  */
-#define LCD_RS                  13
-#define LCD_ENABLE              12
-#define LCD_D4                  4
-#define LCD_D5                  5
-#define LCD_D6                  6
-#define LCD_D7                  7
+
+//PCB rev1
+#define LCD_RS                  12
+#define LCD_ENABLE              13
+#define LCD_D4                  7
+#define LCD_D5                  6
+#define LCD_D6                  5
+#define LCD_D7                  4
+
+////Breadboard
+//#define LCD_RS                  13
+//#define LCD_ENABLE              12
+//#define LCD_D4                  4
+//#define LCD_D5                  5
+//#define LCD_D6                  6
+//#define LCD_D7                  7
 LiquidCrystal lcd(LCD_RS, LCD_ENABLE, LCD_D4, LCD_D5, LCD_D6, LCD_D7);
 
 
