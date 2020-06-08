@@ -155,7 +155,7 @@ int ILoadTweak = 0;                   //Default value for tweaking ILoad, saved/
 
 
 /* Rotary Encoder */
-Encoder myEnc(2, 3);                  //Rotary encoder attached to pins 2 and 3, using interrupts INT0 and INT1.
+Encoder myEnc(3, 2);                  //Rotary encoder attached to pins 2 and 3, using interrupts INT0 and INT1.
 const byte encBtn = 8;                //Rotary encoder button pin, connected to digital pin 8
 
 

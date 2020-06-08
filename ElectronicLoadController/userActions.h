@@ -141,5 +141,5 @@ int getEncoderMovement() {
       if(newPos < 0) movement *= -1; //pow removes sign, add it back
       myEnc.write(0);
     }
-    return movement * -1; //Pcb rev1.0 has the encoder upside down!
+    return movement;
 }
