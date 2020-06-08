@@ -25,7 +25,7 @@ unsigned long outputEnableBtnLastPressMs = 0;
 unsigned long encoderBtnLastPressMs = 0;
 
 
-bool modeJustChanged = true;                  //Set to true, then immediately to false somewhere on loop(). onModeChanged flag.
+bool forceLCDRedraw = true;                  //Set to true, then immediately to false somewhere on loop().  Used to force a redraw.
 
 
 

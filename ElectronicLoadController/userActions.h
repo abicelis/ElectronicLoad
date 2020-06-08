@@ -36,7 +36,7 @@ void handleModeSelection(bool goToNextMode) {
     nextMode();
   }
 
-  modeJustChanged = true;
+  forceLCDRedraw = true;
   if(outputEnabled)
     handleOutputToggle();
   
@@ -95,6 +95,8 @@ void handleModeSelection(bool goToNextMode) {
 
 
 void handleEncoderButtonPress() {
+  forceLCDRedraw = true; //This pretty much forces the LCD to be re-drawn
+
   if(mode == SQUARE_CURRENT) {
     switch(SCCurrentParam) {
       case SC_PARAM_IHI:

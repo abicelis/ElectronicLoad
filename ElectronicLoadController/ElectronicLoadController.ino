@@ -76,8 +76,8 @@ void loop() {
   int encoderPos = getEncoderMovement();       //getEncoderMovement() returns either a negative value, 0 or a positive value
   
   if(mode == CONSTANT_CURRENT) {
-    if(encoderPos != 0 || modeJustChanged) {                        //Encoder or mode changed
-      modeJustChanged = false;
+    if(encoderPos != 0 || forceLCDRedraw) {                        //Encoder or mode changed
+      forceLCDRedraw = false;
       ISetVal += ISET_CC_STEP * encoderPos;
       if(encoderPos < 0 && ISetVal >= ISET_CC_STEP) {
           if(ISetVal > ISET_CC_MAX) ISetVal = 0; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
@@ -94,8 +94,8 @@ void loop() {
 
 
   else if(mode == CONSTANT_RESISTANCE) {
-    if(encoderPos != 0 || modeJustChanged) {                        //Encoder or mode changed
-      modeJustChanged = false;
+    if(encoderPos != 0 || forceLCDRedraw) {                        //Encoder or mode changed
+      forceLCDRedraw = false;
       ISetVal += ISET_CR_STEP * encoderPos;
       if(encoderPos < 0) {
           if(ISetVal > ISET_CR_MAX || ISetVal < ISET_CR_MIN) ISetVal = ISET_CR_MIN; //ISetVal is unsigned, if pushed lower than zero it'll loop back to Int.MAX!
@@ -113,8 +113,8 @@ void loop() {
 
 
   else if(mode == CONSTANT_POWER) {
-    if(encoderPos != 0 || modeJustChanged) {                        //Encoder or mode changed
-      modeJustChanged = false;
+    if(encoderPos != 0 || forceLCDRedraw) {                        //Encoder or mode changed
+      forceLCDRedraw = false;
       ISetVal += ISET_CP_STEP * encoderPos;
   
       if(encoderPos < 0 && ISetVal >= ISET_CP_STEP) {
@@ -132,9 +132,9 @@ void loop() {
   }
 
   else if(mode == SQUARE_CURRENT) {
-    if(encoderPos != 0 || modeJustChanged) {                        //Encoder or mode changed
+    if(encoderPos != 0 || forceLCDRedraw) {                        //Encoder or mode changed
       
-      modeJustChanged = false;
+      forceLCDRedraw = false;
       switch(SCCurrentParam) {
         case SC_PARAM_IHI:
           ISetSCIHi += ISET_SC_I_STEP * encoderPos;
@@ -215,9 +215,9 @@ void loop() {
   }
 
   else if(mode == TRIANGLE_CURRENT) {
-    if(encoderPos != 0 || modeJustChanged) {                        //Encoder or mode changed
+    if(encoderPos != 0 || forceLCDRedraw) {                        //Encoder or mode changed
       
-      modeJustChanged = false;
+      forceLCDRedraw = false;
       switch(TCCurrentParam) {
         case TC_PARAM_IHI:
           ISetTCIHi += ISET_TC_I_STEP * encoderPos;
@@ -298,8 +298,8 @@ void loop() {
 
 
   else if(mode == SINE_CURRENT) {
-    if(encoderPos != 0 || modeJustChanged) {                        //Encoder or mode changed
-      modeJustChanged = false;
+    if(encoderPos != 0 || forceLCDRedraw) {                        //Encoder or mode changed
+      forceLCDRedraw = false;
       
       switch(SNCCurrentParam) {
         case SNC_PARAM_IHI:
@@ -391,9 +391,9 @@ void loop() {
 
   
 
-
   //Handle Mode change button press
   if(digitalRead(modeSelectorBtn) == LOW && (currentMillis > modeSelectorBtnLastPressMs + BUTTON_DEBOUNCE_MS) )  {
+
     modeSelectorBtnLastPressMs = currentMillis;
     handleModeSelection(true);
   }
@@ -402,7 +402,7 @@ void loop() {
   //Handle Output Enable/Disable button press
   if(digitalRead(outputEnableBtn) == LOW && (currentMillis > outputEnableBtnLastPressMs + BUTTON_DEBOUNCE_MS) )  {
     outputEnableBtnLastPressMs = currentMillis;
-    
+
     if(!outputEnabled) {
       if(currentTemperature < overheatTempVal)
         handleOutputToggle();
