@@ -73,10 +73,15 @@ void sampleTempAndUpdateFan() {
   //DEBUG_PRINT("Temp=");
   //DEBUG_PRINTLN(currentTemperature);
 
-  if(currentTemperature >= maxValidTempVal)
-    currentTemperature = maxValidTempVal;
+  int tempForFanPurposes = currentTemperature;
+
+  if(tempForFanPurposes > tempValMaxFanSpin)
+    tempForFanPurposes = tempValMaxFanSpin;
+
+  if(tempForFanPurposes < tempValMinFanSpin)
+    tempForFanPurposes = tempValMinFanSpin;
   
-  analogWrite16(fanPin, map(currentTemperature, 0, maxValidTempVal, 0, 65535));
+  analogWrite16(fanPin, map(tempForFanPurposes, tempValMinFanSpin, tempValMaxFanSpin, 0, 65535));
 }
 
 void checkForOverTemp() {
